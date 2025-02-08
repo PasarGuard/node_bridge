@@ -74,7 +74,7 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 		Users:  users,
 	}
 
-	ctx, cancel := context.WithTimeout(n.baseCtx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	info, err := n.client.Start(ctx, req)
