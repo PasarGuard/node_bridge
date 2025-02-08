@@ -4,5 +4,5 @@ A Go library for To connect easy and stable to [Gozargah-Node](https://github.co
 
 ## Installation
 ```bash
-go get github.com/M03ED/gozargah_node_bridge
+go get github.com/m03ed/gozargah_node_bridge
 ```
