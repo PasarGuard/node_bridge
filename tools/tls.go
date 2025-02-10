@@ -4,16 +4,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net/http"
+	"time"
 )
 
-func CreateTlsConfig(clientCert, clientKey, serverCA string) (*tls.Config, error) {
-	clientCertPair, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+func CreateTlsConfig(clientCert, clientKey, serverCA []byte) (*tls.Config, error) {
+	clientCertPair, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse client certificate and key: %v", err)
 	}
 
 	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM([]byte(serverCA)) {
+	if !caCertPool.AppendCertsFromPEM(serverCA) {
 		return nil, fmt.Errorf("failed to add server CA certificate to pool")
 	}
 
@@ -40,4 +42,13 @@ func CreateTlsConfig(clientCert, clientKey, serverCA string) (*tls.Config, error
 		},
 	}
 	return config, nil
+}
+
+func CreateHTTPClient(tlsConfig *tls.Config) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+		Timeout: 5 * time.Second,
+	}
 }

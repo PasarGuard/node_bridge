@@ -1,15 +1,16 @@
-package rpc
+package rest
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
 	"github.com/m03ed/gozargah_node_bridge/controller"
@@ -18,8 +19,10 @@ import (
 
 type Node struct {
 	controller.Controller
-	client     common.NodeServiceClient
+	client     *http.Client
 	baseCtx    context.Context
+	baseUrl    string
+	sessionId  string
 	cancelFunc context.CancelFunc
 	mu         sync.RWMutex
 }
@@ -30,21 +33,13 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte) (
 		return nil, err
 	}
 
-	target := net.JoinHostPort(address, fmt.Sprintf("%d", port))
-
-	client, err := grpc.NewClient(
-		target,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC client: %v", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	n := &Node{
+		client:     tools.CreateHTTPClient(tlsConfig),
 		baseCtx:    ctx,
-		client:     common.NewNodeServiceClient(client),
+		baseUrl:    "https://" + net.JoinHostPort(address, fmt.Sprintf("%d", port)),
+		sessionId:  "",
 		cancelFunc: cancel,
 	}
 	n.Init()
@@ -53,31 +48,34 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte) (
 }
 
 func (n *Node) Start(config string, backendType common.BackendType, users []*common.User) error {
+	if n.GetHealth() != controller.NotConnected {
+		n.Stop()
+	}
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	req := &common.Backend{
+
+	data := &common.Backend{
 		Type:   backendType,
 		Config: config,
 		Users:  users,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	info, err := n.client.Start(ctx, req)
-	if err != nil {
+	n.client.Timeout = time.Second * 15
+	var info common.BaseInfoResponse
+	if err := n.createRequest(n.client, "POST", "/start", data, &info); err != nil {
 		return err
 	}
 
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
+	n.sessionId = info.GetSessionId()
+	n.client.Timeout = time.Second * 5
 
-	md := metadata.Pairs("authorization", "Bearer "+info.GetSessionId())
-	ctx = metadata.NewOutgoingContext(context.Background(), md)
-	n.baseCtx, n.cancelFunc = context.WithCancel(ctx)
+	n.baseCtx, n.cancelFunc = context.WithCancel(context.Background())
 
 	go n.checkNodeHealth()
-	go n.SyncUser()
 	go n.FetchLogs()
+	go n.SyncUser()
 
 	return nil
 }
@@ -89,18 +87,11 @@ func (n *Node) Stop() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	existingMD, ok := metadata.FromOutgoingContext(n.baseCtx)
-	if !ok {
-		existingMD = metadata.MD{}
-	}
 	n.cancelFunc()
-
 	n.Disconnect()
+	_ = n.createRequest(n.client, "PUT", "/stop", &common.Empty{}, &common.Empty{})
 
-	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), existingMD), 5*time.Second)
-	defer cancel()
-
-	_, _ = n.client.Stop(ctx, nil)
+	n.sessionId = ""
 }
 
 func (n *Node) Info() (*common.BaseInfoResponse, error) {
@@ -108,15 +99,12 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
-	defer cancel()
-
-	resp, err := n.client.GetBaseInfo(ctx, nil)
-	if err != nil {
+	var info common.BaseInfoResponse
+	if err := n.createRequest(n.client, "GET", "/info", &common.Empty{}, &info); err != nil {
 		return nil, err
 	}
 
-	return resp, nil
+	return &info, nil
 }
 
 func (n *Node) checkNodeHealth() {
@@ -138,4 +126,32 @@ loop:
 		}
 		time.Sleep(2 * time.Second)
 	}
+}
+
+func (n *Node) createRequest(client *http.Client, method, endpoint string, data proto.Message, response proto.Message) error {
+	body, err := proto.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(method, n.baseUrl+endpoint, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+n.sessionId)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/x-protobuf")
+	}
+
+	do, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer do.Body.Close()
+
+	responseBody, _ := io.ReadAll(do.Body)
+	if err = proto.Unmarshal(responseBody, response); err != nil {
+		return err
+	}
+	return nil
 }

@@ -4,59 +4,60 @@ import (
 	"context"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/m03ed/gozargah_node_bridge/common"
+	"github.com/m03ed/gozargah_node_bridge/controller"
 )
 
 func (n *Node) SyncUser() {
+	baseCtx := n.baseCtx
+	notifyChan := n.NotifyChan
+	userChan := n.UserChan
+
 mainLoop:
 	for {
 		select {
-		case <-n.baseCtx.Done():
+		case <-baseCtx.Done():
 			return
 		default:
 		}
-		if err := n.Status(); err != nil {
+
+		switch n.GetHealth() {
+		case controller.Broken:
 			time.Sleep(5 * time.Second)
 			continue mainLoop
+		case controller.NotConnected:
+			return
+		default:
 		}
+
 		syncUser, _ := n.client.SyncUser(n.baseCtx)
 	inLoop:
 		for {
 			select {
-			case <-n.baseCtx.Done():
+			case <-baseCtx.Done():
 				return
 			case <-syncUser.Context().Done():
 				return
-			case <-n.NotifyChan:
+			case _, ok := <-notifyChan:
+				if !ok {
+					return
+				}
 				continue mainLoop
-			case e := <-n.UserChan:
-				u, _ := n.GetUser(e)
-				if u == nil {
-					continue
+			case u, ok := <-userChan:
+				if !ok {
+					return
 				}
+
 				if err := syncUser.Send(u); err != nil {
-					if errStatus, ok := status.FromError(err); ok {
-						switch errStatus.Code() {
-						case codes.DeadlineExceeded:
-							break inLoop
-						case codes.Canceled:
-							break inLoop
-						default:
-							break inLoop
-						}
-					}
+					break inLoop
 				}
-				n.DeleteUser(e)
 			}
 		}
 	}
 }
 
 func (n *Node) SyncUsers(users []*common.User) error {
-	if err := n.Status(); err != nil {
+	if err := n.Connected(); err != nil {
 		return err
 	}
 

@@ -2,6 +2,7 @@ package gozargah_node_bridge
 
 import (
 	"errors"
+	"github.com/m03ed/gozargah_node_bridge/rest"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
 	"github.com/m03ed/gozargah_node_bridge/controller"
@@ -17,15 +18,15 @@ type GozargahNode interface {
 	Info() (*common.BaseInfoResponse, error)
 	GetSystemStats() (*common.SystemStatsResponse, error)
 	GetBackendStats() (*common.BackendStatsResponse, error)
-	GetOutboundsStats() (*common.StatResponse, error)
-	GetOutboundStats(string) (*common.StatResponse, error)
-	GetInboundsStats() (*common.StatResponse, error)
-	GetInboundStats(string) (*common.StatResponse, error)
-	GetUsersStats() (*common.StatResponse, error)
-	GetUserStats(string) (*common.StatResponse, error)
+	GetOutboundsStats(bool) (*common.StatResponse, error)
+	GetOutboundStats(string, bool) (*common.StatResponse, error)
+	GetInboundsStats(bool) (*common.StatResponse, error)
+	GetInboundStats(string, bool) (*common.StatResponse, error)
+	GetUsersStats(bool) (*common.StatResponse, error)
+	GetUserStats(string, bool) (*common.StatResponse, error)
 	GetUserOnlineStat(string) (*common.OnlineStatResponse, error)
 	GetHealth() controller.Health
-	Status() error
+	Connected() error
 	UpdateUser(*common.User) error
 	RemoveUser(*common.User) error
 	GetLogs() (chan string, error)
@@ -38,7 +39,7 @@ const (
 	REST NodeProtocol = "REST"
 )
 
-func NewNode(address string, port int, clientCert, clientKey, serverCA string, nodeProtocol NodeProtocol) (GozargahNode, error) {
+func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, nodeProtocol NodeProtocol) (GozargahNode, error) {
 	if address == "" {
 		return nil, errors.New("address is empty")
 	}
@@ -52,7 +53,7 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA string, n
 	case GRPC:
 		node, err = rpc.NewNode(address, port, clientCert, clientKey, serverCA)
 	case REST:
-		return nil, errors.New("not implemented yet")
+		node, err = rest.NewNode(address, port, clientCert, clientKey, serverCA)
 	default:
 		return nil, errors.New("unknown node protocol")
 	}

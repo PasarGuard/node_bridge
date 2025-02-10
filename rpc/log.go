@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -12,35 +13,39 @@ import (
 )
 
 func (n *Node) FetchLogs() {
+	baseCtx := n.baseCtx
+
 mainLoop:
 	for {
 		select {
-		case <-n.baseCtx.Done():
+		case <-baseCtx.Done():
 			return
 		default:
-			if err := n.Status(); err != nil {
+			switch n.GetHealth() {
+			case controller.Broken:
 				time.Sleep(5 * time.Second)
-				continue mainLoop
+				continue
+			case controller.NotConnected:
+				return
+			default:
 			}
+
 			logsStream, _ := n.client.GetLogs(n.baseCtx, &common.Empty{})
 			for {
 				select {
-				case <-n.baseCtx.Done():
+				case <-baseCtx.Done():
 					return
 				default:
 					logEntry, err := logsStream.Recv()
 					if err != nil {
 						_ = logsStream.CloseSend()
-						time.Sleep(5 * time.Second)
-						if err == io.EOF {
+						if errors.Is(err, io.EOF) {
 							continue mainLoop
 						}
 
 						if st, ok := status.FromError(err); ok {
 							switch st.Code() {
-							case codes.Canceled:
-								continue mainLoop
-							case codes.Unavailable, codes.DeadlineExceeded:
+							case codes.Canceled, codes.Unavailable, codes.DeadlineExceeded:
 								continue mainLoop
 							default:
 								n.SetHealth(controller.Broken)
