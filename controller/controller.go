@@ -9,9 +9,6 @@ import (
 
 var (
 	NotConnectedError = errors.New("node is not connected")
-	BrokenNodeError   = errors.New("node is broken")
-	UserNotFoundError = errors.New("user not found")
-	DisconnectedError = errors.New("node is disconnected")
 )
 
 type Health int
