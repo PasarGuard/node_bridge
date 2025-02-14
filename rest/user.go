@@ -34,7 +34,7 @@ func (n *Node) SyncUser() {
 				return
 			}
 
-			if err := n.createRequest(n.client, "PUT", "/user/sync", u, &common.Empty{}); err != nil {
+			if err := n.createRequest(n.client, "PUT", "user/sync", u, &common.Empty{}); err != nil {
 				continue
 			}
 		}
@@ -50,7 +50,7 @@ func (n *Node) SyncUsers(users []*common.User) error {
 		Users: users,
 	}
 
-	if err := n.createRequest(n.client, "PUT", "/users/sync", data, &common.Empty{}); err != nil {
+	if err := n.createRequest(n.client, "PUT", "users/sync", data, &common.Empty{}); err != nil {
 		return err
 	}
 

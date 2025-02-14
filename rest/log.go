@@ -1,16 +1,18 @@
 package rest
 
 import (
-	"github.com/m03ed/gozargah_node_bridge/controller"
+	"bufio"
+	"strings"
 	"time"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
+	"github.com/m03ed/gozargah_node_bridge/controller"
 )
 
 func (n *Node) FetchLogs() {
 	baseCtx := n.baseCtx
 	client := *n.client
-	client.Timeout = 60 * time.Second
+	client.Timeout = 0
+mainLoop:
 	for {
 		select {
 		case <-baseCtx.Done():
@@ -25,14 +27,24 @@ func (n *Node) FetchLogs() {
 			default:
 			}
 
-			var logs common.LogList
-			if err := n.createRequest(&client, "GET", "/logs", &common.Empty{}, &logs); err != nil {
+			reader, err := n.createStreamingRequest(&client, "GET", "logs")
+			if err != nil {
 				continue
 			}
+			defer reader.Close()
 
-			for _, logEntry := range logs.GetLogs() {
-				if logEntry != "" {
-					n.LogsChan <- logEntry
+			bufReader := bufio.NewReader(reader)
+
+			for {
+				line, err := bufReader.ReadString('\n') // Read until newline
+				if err != nil {
+					_ = reader.Close()
+					continue mainLoop
+				}
+
+				line = strings.TrimSpace(line)
+				if line != "" {
+					n.LogsChan <- line
 				}
 			}
 		}

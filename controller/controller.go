@@ -26,14 +26,22 @@ type Controller struct {
 	LogsChan    chan string
 	nodeVersion string
 	coreVersion string
+	extra       map[string]interface{}
 	mu          sync.RWMutex
 }
 
-func (c *Controller) Init() {
+func (c *Controller) Init(extra map[string]interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.health = NotConnected
+	c.extra = extra
+}
+
+func (c *Controller) GetExtra() map[string]interface{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.extra
 }
 
 func (c *Controller) SetHealth(health Health) {
@@ -86,11 +94,10 @@ func (c *Controller) RemoveUser(u *common.User) error {
 }
 
 func (c *Controller) GetLogs() (chan string, error) {
-	switch c.GetHealth() {
-	case NotConnected:
-		return nil, NotConnectedError
-	default:
+	if err := c.Connected(); err != nil {
+		return nil, err
 	}
+
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.LogsChan, nil

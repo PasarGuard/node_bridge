@@ -10,7 +10,7 @@ func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
 	}
 
 	var stats common.SystemStatsResponse
-	err := n.createRequest(n.client, "GET", "/stats/system", &common.Empty{}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/system", &common.Empty{}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
 	}
 
 	var stats common.BackendStatsResponse
-	err := n.createRequest(n.client, "GET", "/stats/backend", &common.Empty{}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/backend", &common.Empty{}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (n *Node) GetOutboundsStats(reset bool) (*common.StatResponse, error) {
 	}
 
 	var stats common.StatResponse
-	err := n.createRequest(n.client, "GET", "/stats/outbounds", &common.StatRequest{Reset_: reset}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/outbounds", &common.StatRequest{Reset_: reset}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (n *Node) GetOutboundStats(tag string, reset bool) (*common.StatResponse, e
 	}
 
 	var stats common.StatResponse
-	err := n.createRequest(n.client, "GET", "/stats/outbound", &common.StatRequest{Name: tag, Reset_: reset}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/outbound", &common.StatRequest{Name: tag, Reset_: reset}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (n *Node) GetInboundsStats(reset bool) (*common.StatResponse, error) {
 	}
 
 	var stats common.StatResponse
-	err := n.createRequest(n.client, "GET", "/stats/inbounds", &common.StatRequest{Reset_: reset}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/inbounds", &common.StatRequest{Reset_: reset}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (n *Node) GetInboundStats(tag string, reset bool) (*common.StatResponse, er
 	}
 
 	var stats common.StatResponse
-	err := n.createRequest(n.client, "GET", "/stats/inbound", &common.StatRequest{Name: tag, Reset_: reset}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/inbound", &common.StatRequest{Name: tag, Reset_: reset}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (n *Node) GetUsersStats(reset bool) (*common.StatResponse, error) {
 	}
 
 	var stats common.StatResponse
-	err := n.createRequest(n.client, "GET", "/stats/users", &common.StatRequest{Reset_: reset}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/users", &common.StatRequest{Reset_: reset}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (n *Node) GetUserStats(email string, reset bool) (*common.StatResponse, err
 	}
 
 	var stats common.StatResponse
-	err := n.createRequest(n.client, "GET", "/stats/user", &common.StatRequest{Name: email, Reset_: reset}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/user", &common.StatRequest{Name: email, Reset_: reset}, &stats)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 	}
 
 	var stats common.OnlineStatResponse
-	err := n.createRequest(n.client, "GET", "/stats/user/online", &common.StatRequest{Name: email}, &stats)
+	err := n.createRequest(n.client, "GET", "stats/user/online", &common.StatRequest{Name: email}, &stats)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ type Node struct {
 	mu         sync.RWMutex
 }
 
-func NewNode(address string, port int, clientCert, clientKey, serverCA []byte) (*Node, error) {
+func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, extra map[string]interface{}) (*Node, error) {
 	tlsConfig, err := tools.CreateTlsConfig(clientCert, clientKey, serverCA)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte) (
 		client:     common.NewNodeServiceClient(client),
 		cancelFunc: cancel,
 	}
-	n.Init()
+	n.Init(extra)
 
 	return n, nil
 }

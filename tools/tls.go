@@ -45,10 +45,14 @@ func CreateTlsConfig(clientCert, clientKey, serverCA []byte) (*tls.Config, error
 }
 
 func CreateHTTPClient(tlsConfig *tls.Config) *http.Client {
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Protocols:       new(http.Protocols),
+	}
+	transport.Protocols.SetHTTP2(true)
+
 	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-		Timeout: 5 * time.Second,
+		Transport: transport,
+		Timeout:   10 * time.Second,
 	}
 }

@@ -146,7 +146,7 @@ func TestRestNode(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	stats, err := node.GetOutboundsStats(true)
 	if err != nil {

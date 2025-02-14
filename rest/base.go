@@ -27,7 +27,7 @@ type Node struct {
 	mu         sync.RWMutex
 }
 
-func NewNode(address string, port int, clientCert, clientKey, serverCA []byte) (*Node, error) {
+func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, extra map[string]interface{}) (*Node, error) {
 	tlsConfig, err := tools.CreateTlsConfig(clientCert, clientKey, serverCA)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte) (
 		sessionId:  "",
 		cancelFunc: cancel,
 	}
-	n.Init()
+	n.Init(extra)
 
 	return n, nil
 }
@@ -63,13 +63,13 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 
 	n.client.Timeout = time.Second * 15
 	var info common.BaseInfoResponse
-	if err := n.createRequest(n.client, "POST", "/start", data, &info); err != nil {
+	if err := n.createRequest(n.client, "POST", "start", data, &info); err != nil {
 		return err
 	}
 
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
 	n.sessionId = info.GetSessionId()
-	n.client.Timeout = time.Second * 5
+	n.client.Timeout = time.Second * 10
 
 	n.baseCtx, n.cancelFunc = context.WithCancel(context.Background())
 
@@ -89,7 +89,7 @@ func (n *Node) Stop() {
 
 	n.cancelFunc()
 	n.Disconnect()
-	_ = n.createRequest(n.client, "PUT", "/stop", &common.Empty{}, &common.Empty{})
+	_ = n.createRequest(n.client, "PUT", "stop", &common.Empty{}, &common.Empty{})
 
 	n.sessionId = ""
 }
@@ -100,7 +100,7 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 	}
 
 	var info common.BaseInfoResponse
-	if err := n.createRequest(n.client, "GET", "/info", &common.Empty{}, &info); err != nil {
+	if err := n.createRequest(n.client, "GET", "info", &common.Empty{}, &info); err != nil {
 		return nil, err
 	}
 
@@ -134,7 +134,7 @@ func (n *Node) createRequest(client *http.Client, method, endpoint string, data 
 		return err
 	}
 
-	req, err := http.NewRequest(method, n.baseUrl+endpoint, bytes.NewBuffer(body))
+	req, err := http.NewRequest(method, n.baseUrl+"/"+endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -154,4 +154,24 @@ func (n *Node) createRequest(client *http.Client, method, endpoint string, data 
 		return err
 	}
 	return nil
+}
+
+func (n *Node) createStreamingRequest(client *http.Client, method, endpoint string) (io.ReadCloser, error) {
+	req, err := http.NewRequest(method, n.baseUrl+"/"+endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+n.sessionId)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return resp.Body, nil
 }
