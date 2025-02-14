@@ -53,7 +53,7 @@ func init() {
 }
 
 func TestGrpcNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, clientCertFile, clientKeyFile, serverCAFile, GRPC)
+	node, err := NewNode(nodeAddr, port, clientCertFile, clientKeyFile, serverCAFile, nil, GRPC)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestGrpcNode(t *testing.T) {
 }
 
 func TestRestNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, clientCertFile, clientKeyFile, serverCAFile, REST)
+	node, err := NewNode(nodeAddr, port, clientCertFile, clientKeyFile, serverCAFile, nil, REST)
 	if err != nil {
 		t.Fatal(err)
 	}
