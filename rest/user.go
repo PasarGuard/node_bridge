@@ -46,11 +46,10 @@ func (n *Node) SyncUsers(users []*common.User) error {
 		return err
 	}
 
-	data := &common.Users{
-		Users: users,
-	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
 
-	if err := n.createRequest(n.client, "PUT", "users/sync", data, &common.Empty{}); err != nil {
+	if err := n.createRequest(n.client, "PUT", "users/sync", &common.Users{Users: users}, &common.Empty{}); err != nil {
 		return err
 	}
 

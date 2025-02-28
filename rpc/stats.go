@@ -12,6 +12,9 @@ func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -27,6 +30,9 @@ func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
@@ -44,6 +50,9 @@ func (n *Node) GetOutboundsStats(reset bool) (*common.StatResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -59,6 +68,9 @@ func (n *Node) GetOutboundStats(tag string, reset bool) (*common.StatResponse, e
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
@@ -76,6 +88,9 @@ func (n *Node) GetInboundsStats(reset bool) (*common.StatResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -91,6 +106,9 @@ func (n *Node) GetInboundStats(tag string, reset bool) (*common.StatResponse, er
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
@@ -108,6 +126,9 @@ func (n *Node) GetUsersStats(reset bool) (*common.StatResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -124,6 +145,9 @@ func (n *Node) GetUserStats(email string, reset bool) (*common.StatResponse, err
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -139,6 +163,9 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()

@@ -99,6 +99,9 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	var info common.BaseInfoResponse
 	if err := n.createRequest(n.client, "GET", "info", &common.Empty{}, &info); err != nil {
 		return nil, err

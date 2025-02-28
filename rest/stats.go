@@ -9,6 +9,9 @@ func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	var stats common.SystemStatsResponse
 	err := n.createRequest(n.client, "GET", "stats/system", &common.Empty{}, &stats)
 	if err != nil {
@@ -22,6 +25,9 @@ func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	var stats common.BackendStatsResponse
 	err := n.createRequest(n.client, "GET", "stats/backend", &common.Empty{}, &stats)
@@ -37,6 +43,9 @@ func (n *Node) GetOutboundsStats(reset bool) (*common.StatResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	var stats common.StatResponse
 	err := n.createRequest(n.client, "GET", "stats/outbounds", &common.StatRequest{Reset_: reset}, &stats)
 	if err != nil {
@@ -50,6 +59,9 @@ func (n *Node) GetOutboundStats(tag string, reset bool) (*common.StatResponse, e
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	var stats common.StatResponse
 	err := n.createRequest(n.client, "GET", "stats/outbound", &common.StatRequest{Name: tag, Reset_: reset}, &stats)
@@ -65,6 +77,9 @@ func (n *Node) GetInboundsStats(reset bool) (*common.StatResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	var stats common.StatResponse
 	err := n.createRequest(n.client, "GET", "stats/inbounds", &common.StatRequest{Reset_: reset}, &stats)
 	if err != nil {
@@ -78,6 +93,9 @@ func (n *Node) GetInboundStats(tag string, reset bool) (*common.StatResponse, er
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	var stats common.StatResponse
 	err := n.createRequest(n.client, "GET", "stats/inbound", &common.StatRequest{Name: tag, Reset_: reset}, &stats)
@@ -93,6 +111,9 @@ func (n *Node) GetUsersStats(reset bool) (*common.StatResponse, error) {
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	var stats common.StatResponse
 	err := n.createRequest(n.client, "GET", "stats/users", &common.StatRequest{Reset_: reset}, &stats)
 	if err != nil {
@@ -106,6 +127,9 @@ func (n *Node) GetUserStats(email string, reset bool) (*common.StatResponse, err
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	var stats common.StatResponse
 	err := n.createRequest(n.client, "GET", "stats/user", &common.StatRequest{Name: email, Reset_: reset}, &stats)
@@ -121,6 +145,9 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 		return nil, err
 	}
 
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	
 	var stats common.OnlineStatResponse
 	err := n.createRequest(n.client, "GET", "stats/user/online", &common.StatRequest{Name: email}, &stats)
 	if err != nil {

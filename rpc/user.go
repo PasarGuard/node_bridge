@@ -61,6 +61,9 @@ func (n *Node) SyncUsers(users []*common.User) error {
 		return err
 	}
 
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	ctx, cancel := context.WithTimeout(n.baseCtx, 10*time.Second)
 	defer cancel()
 

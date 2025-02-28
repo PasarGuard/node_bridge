@@ -53,8 +53,13 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, e
 }
 
 func (n *Node) Start(config string, backendType common.BackendType, users []*common.User) error {
+	if n.GetHealth() != controller.NotConnected {
+		n.Stop()
+	}
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	req := &common.Backend{
 		Type:   backendType,
 		Config: config,
@@ -107,6 +112,9 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 	if err := n.Connected(); err != nil {
 		return nil, err
 	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
