@@ -20,26 +20,8 @@ func CreateTlsConfig(clientCert, clientKey, serverCA []byte) (*tls.Config, error
 	}
 
 	config := &tls.Config{
-		Certificates:       []tls.Certificate{clientCertPair},
-		RootCAs:            caCertPool,
-		InsecureSkipVerify: true,
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			opts := x509.VerifyOptions{
-				Roots: caCertPool,
-			}
-
-			cert, err := x509.ParseCertificate(rawCerts[0])
-			if err != nil {
-				return fmt.Errorf("failed to parse certificate: %v", err)
-			}
-
-			_, err = cert.Verify(opts)
-			if err != nil {
-				return fmt.Errorf("certificate verification failed: %v", err)
-			}
-
-			return nil
-		},
+		Certificates: []tls.Certificate{clientCertPair},
+		RootCAs:      caCertPool,
 	}
 	return config, nil
 }
