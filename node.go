@@ -2,6 +2,7 @@ package gozargah_node_bridge
 
 import (
 	"errors"
+	"github.com/google/uuid"
 
 	"github.com/m03ed/gozargah_node_bridge/rest"
 
@@ -40,7 +41,7 @@ const (
 	REST NodeProtocol = "REST"
 )
 
-func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, extra map[string]interface{}, nodeProtocol NodeProtocol) (GozargahNode, error) {
+func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}, nodeProtocol NodeProtocol) (GozargahNode, error) {
 	if address == "" {
 		return nil, errors.New("address is empty")
 	}
@@ -52,9 +53,9 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, e
 	var err error
 	switch nodeProtocol {
 	case GRPC:
-		node, err = rpc.NewNode(address, port, clientCert, clientKey, serverCA, extra)
+		node, err = rpc.NewNode(address, port, serverCA, apiKey, extra)
 	case REST:
-		node, err = rest.NewNode(address, port, clientCert, clientKey, serverCA, extra)
+		node, err = rest.NewNode(address, port, serverCA, apiKey, extra)
 	default:
 		return nil, errors.New("unknown node protocol")
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"net"
 	"net/http"
@@ -22,13 +23,12 @@ type Node struct {
 	client     *http.Client
 	baseCtx    context.Context
 	baseUrl    string
-	sessionId  string
 	cancelFunc context.CancelFunc
 	mu         sync.RWMutex
 }
 
-func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, extra map[string]interface{}) (*Node, error) {
-	tlsConfig, err := tools.CreateTlsConfig(clientCert, clientKey, serverCA)
+func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
+	tlsConfig, err := tools.LoadClientPool(serverCA)
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +39,9 @@ func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, e
 		client:     tools.CreateHTTPClient(tlsConfig),
 		baseCtx:    ctx,
 		baseUrl:    "https://" + net.JoinHostPort(address, fmt.Sprintf("%d", port)),
-		sessionId:  "",
 		cancelFunc: cancel,
 	}
-	n.Init(extra)
+	n.Init(apiKey, extra)
 
 	return n, nil
 }
@@ -68,7 +67,6 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 	}
 
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
-	n.sessionId = info.GetSessionId()
 	n.client.Timeout = time.Second * 10
 
 	n.baseCtx, n.cancelFunc = context.WithCancel(context.Background())
@@ -90,8 +88,6 @@ func (n *Node) Stop() {
 	n.cancelFunc()
 	n.Disconnect()
 	_ = n.createRequest(n.client, "PUT", "stop", &common.Empty{}, &common.Empty{})
-
-	n.sessionId = ""
 }
 
 func (n *Node) Info() (*common.BaseInfoResponse, error) {
@@ -141,7 +137,7 @@ func (n *Node) createRequest(client *http.Client, method, endpoint string, data 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+n.sessionId)
+	req.Header.Set("Authorization", "Bearer "+n.GetApiKey())
 	if body != nil {
 		req.Header.Set("Content-Type", "application/x-protobuf")
 	}
@@ -164,7 +160,7 @@ func (n *Node) createStreamingRequest(client *http.Client, method, endpoint stri
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+n.sessionId)
+	req.Header.Set("Authorization", "Bearer "+n.GetApiKey())
 
 	resp, err := client.Do(req)
 	if err != nil {

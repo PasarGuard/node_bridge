@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"sync"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
@@ -26,16 +27,24 @@ type Controller struct {
 	LogsChan    chan string
 	nodeVersion string
 	coreVersion string
+	apiKey      string
 	extra       map[string]interface{}
 	mu          sync.RWMutex
 }
 
-func (c *Controller) Init(extra map[string]interface{}) {
+func (c *Controller) Init(apiKey uuid.UUID, extra map[string]interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.health = NotConnected
 	c.extra = extra
+	c.apiKey = apiKey.String()
+}
+
+func (c *Controller) GetApiKey() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.apiKey
 }
 
 func (c *Controller) GetExtra() map[string]interface{} {

@@ -14,19 +14,17 @@ import (
 )
 
 var (
-	port              = 62050
-	nodeAddr          = "172.27.158.135"
-	serverCA          = "certs/ssl_cert.pem"
-	clientSslCertFile = "certs/ssl_client_cert.pem"
-	clientSslKeyFile  = "certs/ssl_client_key.pem"
-	configPath        = "config/xray.json"
+	port       = 2096
+	nodeAddr   = "172.27.158.135"
+	serverCA   = "certs/ssl_cert.pem"
+	apiKey     = "d04d8680-942d-4365-992f-9f482275691d"
+	configPath = "config/xray.json"
 )
 
 var (
-	serverCAFile   []byte
-	clientCertFile []byte
-	clientKeyFile  []byte
-	configFile     string
+	serverCAFile []byte
+	uuidKey      uuid.UUID
+	configFile   string
 )
 
 func init() {
@@ -36,12 +34,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	clientCertFile, err = os.ReadFile(clientSslCertFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clientKeyFile, err = os.ReadFile(clientSslKeyFile)
+	uuidKey, err = uuid.Parse(apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,7 +46,7 @@ func init() {
 }
 
 func TestGrpcNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, clientCertFile, clientKeyFile, serverCAFile, nil, GRPC)
+	node, err := NewNode(nodeAddr, port, serverCAFile, uuidKey, nil, GRPC)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +95,7 @@ func TestGrpcNode(t *testing.T) {
 }
 
 func TestRestNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, clientCertFile, clientKeyFile, serverCAFile, nil, REST)
+	node, err := NewNode(nodeAddr, port, serverCAFile, uuidKey, nil, REST)
 	if err != nil {
 		t.Fatal(err)
 	}

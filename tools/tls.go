@@ -3,30 +3,22 @@ package tools
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 )
 
-func CreateTlsConfig(clientCert, clientKey, serverCA []byte) (*tls.Config, error) {
-	clientCertPair, err := tls.X509KeyPair(clientCert, clientKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse client certificate and key: %v", err)
+func LoadClientPool(cert []byte) (*x509.CertPool, error) {
+	// Create a certificate pool and add the server's certificate
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(cert) {
+		return nil, errors.New("failed to add server CA's certificate")
 	}
-
-	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(serverCA) {
-		return nil, fmt.Errorf("failed to add server CA certificate to pool")
-	}
-
-	config := &tls.Config{
-		Certificates: []tls.Certificate{clientCertPair},
-		RootCAs:      caCertPool,
-	}
-	return config, nil
+	return certPool, nil
 }
 
-func CreateHTTPClient(tlsConfig *tls.Config) *http.Client {
+func CreateHTTPClient(certPool *x509.CertPool) *http.Client {
+	tlsConfig := &tls.Config{RootCAs: certPool}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
 		Protocols:       new(http.Protocols),

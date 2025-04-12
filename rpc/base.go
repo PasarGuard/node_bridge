@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"net"
 	"sync"
 	"time"
@@ -24,30 +25,34 @@ type Node struct {
 	mu         sync.RWMutex
 }
 
-func NewNode(address string, port int, clientCert, clientKey, serverCA []byte, extra map[string]interface{}) (*Node, error) {
-	tlsConfig, err := tools.CreateTlsConfig(clientCert, clientKey, serverCA)
+func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
+	certPool, err := tools.LoadClientPool(serverCA)
 	if err != nil {
 		return nil, err
 	}
 
+	creds := credentials.NewClientTLSFromCert(certPool, "")
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(creds),
+	}
+
 	target := net.JoinHostPort(address, fmt.Sprintf("%d", port))
 
-	client, err := grpc.NewClient(
-		target,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-	)
+	client, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC client: %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	md := metadata.Pairs("authorization", "Bearer "+apiKey.String())
+	ctxWithKey := metadata.NewOutgoingContext(context.Background(), md)
+	ctx, cancel := context.WithCancel(ctxWithKey)
 
 	n := &Node{
 		baseCtx:    ctx,
 		client:     common.NewNodeServiceClient(client),
 		cancelFunc: cancel,
 	}
-	n.Init(extra)
+	n.Init(apiKey, extra)
 
 	return n, nil
 }
@@ -66,7 +71,7 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 		Users:  users,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(n.baseCtx, 15*time.Second)
 	defer cancel()
 
 	info, err := n.client.Start(ctx, req)
@@ -75,10 +80,6 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 	}
 
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
-
-	md := metadata.Pairs("authorization", "Bearer "+info.GetSessionId())
-	ctx = metadata.NewOutgoingContext(context.Background(), md)
-	n.baseCtx, n.cancelFunc = context.WithCancel(ctx)
 
 	go n.checkNodeHealth()
 	go n.SyncUser()
@@ -94,18 +95,18 @@ func (n *Node) Stop() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	existingMD, ok := metadata.FromOutgoingContext(n.baseCtx)
-	if !ok {
-		existingMD = metadata.MD{}
-	}
 	n.cancelFunc()
-
 	n.Disconnect()
 
-	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), existingMD), 5*time.Second)
+	md := metadata.Pairs("authorization", "Bearer "+n.GetApiKey())
+	ctxWithKey := metadata.NewOutgoingContext(context.Background(), md)
+
+	ctx, cancel := context.WithTimeout(ctxWithKey, 5*time.Second)
 	defer cancel()
 
 	_, _ = n.client.Stop(ctx, nil)
+
+	n.baseCtx, n.cancelFunc = context.WithCancel(ctxWithKey)
 }
 
 func (n *Node) Info() (*common.BaseInfoResponse, error) {
