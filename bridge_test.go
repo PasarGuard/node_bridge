@@ -3,6 +3,7 @@ package gozargah_node_bridge
 import (
 	"fmt"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -15,18 +16,25 @@ import (
 var (
 	port       = 2096
 	nodeAddr   = "172.27.158.135"
+	serverCA   = "certs/ssl_cert.pem"
 	apiKey     = "d04d8680-942d-4365-992f-9f482275691d"
 	configPath = "config/xray.json"
 	keepAlive  = uint64(60)
 )
 
 var (
-	uuidKey    uuid.UUID
-	configFile string
+	serverCAFile []byte
+	uuidKey      uuid.UUID
+	configFile   string
 )
 
 func init() {
 	var err error
+	serverCAFile, err = os.ReadFile(serverCA)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	uuidKey, err = uuid.Parse(apiKey)
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +47,7 @@ func init() {
 }
 
 func TestGrpcNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, uuidKey, nil, GRPC)
+	node, err := NewNode(nodeAddr, port, serverCAFile, uuidKey, nil, GRPC)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +96,7 @@ func TestGrpcNode(t *testing.T) {
 }
 
 func TestRestNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, uuidKey, nil, REST)
+	node, err := NewNode(nodeAddr, port, serverCAFile, uuidKey, nil, REST)
 	if err != nil {
 		t.Fatal(err)
 	}

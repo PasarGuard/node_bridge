@@ -3,19 +3,20 @@ package tools
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"net/http"
 	"time"
 )
 
-func LoadClientPool() (*x509.CertPool, error) {
+func LoadClientPool(cert []byte) (*x509.CertPool, error) {
 	// Create a certificate pool and add the server's certificate
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
 		certPool = x509.NewCertPool()
 	}
-	//if !certPool.AppendCertsFromPEM(cert) {
-	//	return nil, errors.New("failed to add server CA's certificate")
-	//}
+	if !certPool.AppendCertsFromPEM(cert) {
+		return nil, errors.New("failed to add server CA's certificate")
+	}
 	return certPool, nil
 }
 

@@ -42,7 +42,7 @@ const (
 	REST NodeProtocol = "REST"
 )
 
-func NewNode(address string, port int, apiKey uuid.UUID, extra map[string]interface{}, nodeProtocol NodeProtocol) (GozargahNode, error) {
+func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}, nodeProtocol NodeProtocol) (GozargahNode, error) {
 	if address == "" {
 		return nil, errors.New("address is empty")
 	}
@@ -54,9 +54,9 @@ func NewNode(address string, port int, apiKey uuid.UUID, extra map[string]interf
 	var err error
 	switch nodeProtocol {
 	case GRPC:
-		node, err = rpc.NewNode(address, port, apiKey, extra)
+		node, err = rpc.NewNode(address, port, serverCA, apiKey, extra)
 	case REST:
-		node, err = rest.NewNode(address, port, apiKey, extra)
+		node, err = rest.NewNode(address, port, serverCA, apiKey, extra)
 	default:
 		return nil, errors.New("unknown node protocol")
 	}

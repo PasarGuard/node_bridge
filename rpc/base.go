@@ -25,8 +25,8 @@ type Node struct {
 	mu         sync.RWMutex
 }
 
-func NewNode(address string, port int, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
-	certPool, err := tools.LoadClientPool()
+func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
+	certPool, err := tools.LoadClientPool(serverCA)
 	if err != nil {
 		return nil, err
 	}
