@@ -19,6 +19,7 @@ var (
 	serverCA   = "certs/ssl_cert.pem"
 	apiKey     = "d04d8680-942d-4365-992f-9f482275691d"
 	configPath = "config/xray.json"
+	keepAlive  = uint64(60)
 )
 
 var (
@@ -51,7 +52,7 @@ func TestGrpcNode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = node.Start(configFile, common.BackendType_XRAY, nil); err != nil {
+	if err = node.Start(configFile, common.BackendType_XRAY, nil, keepAlive); err != nil {
 		t.Fatal(err)
 	}
 
@@ -100,7 +101,7 @@ func TestRestNode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = node.Start(configFile, common.BackendType_XRAY, nil); err != nil {
+	if err = node.Start(configFile, common.BackendType_XRAY, nil, keepAlive); err != nil {
 		t.Fatal(err)
 	}
 

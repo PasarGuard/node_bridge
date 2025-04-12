@@ -2,17 +2,17 @@ package gozargah_node_bridge
 
 import (
 	"errors"
-	"github.com/google/uuid"
 
-	"github.com/m03ed/gozargah_node_bridge/rest"
+	"github.com/google/uuid"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
 	"github.com/m03ed/gozargah_node_bridge/controller"
+	"github.com/m03ed/gozargah_node_bridge/rest"
 	"github.com/m03ed/gozargah_node_bridge/rpc"
 )
 
 type GozargahNode interface {
-	Start(string, common.BackendType, []*common.User) error
+	Start(string, common.BackendType, []*common.User, uint64) error
 	Stop()
 	NodeVersion() string
 	CoreVersion() string
@@ -27,6 +27,7 @@ type GozargahNode interface {
 	GetUsersStats(bool) (*common.StatResponse, error)
 	GetUserStats(string, bool) (*common.StatResponse, error)
 	GetUserOnlineStat(string) (*common.OnlineStatResponse, error)
+	GetUserOnlineIpList(string) (*common.StatsOnlineIpListResponse, error)
 	GetHealth() controller.Health
 	Connected() error
 	UpdateUser(*common.User) error

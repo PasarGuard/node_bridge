@@ -177,3 +177,22 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 
 	return resp, nil
 }
+
+func (n *Node) GetUserOnlineIpList(email string) (*common.StatsOnlineIpListResponse, error) {
+	if err := n.Connected(); err != nil {
+		return nil, err
+	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	defer cancel()
+
+	resp, err := n.client.GetUserOnlineIpListStats(ctx, &common.StatRequest{Name: email})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}

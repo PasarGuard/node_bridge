@@ -57,7 +57,7 @@ func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra 
 	return n, nil
 }
 
-func (n *Node) Start(config string, backendType common.BackendType, users []*common.User) error {
+func (n *Node) Start(config string, backendType common.BackendType, users []*common.User, keepAlive uint64) error {
 	if n.GetHealth() != controller.NotConnected {
 		n.Stop()
 	}
@@ -66,9 +66,10 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 	defer n.mu.Unlock()
 
 	req := &common.Backend{
-		Type:   backendType,
-		Config: config,
-		Users:  users,
+		Type:      backendType,
+		Config:    config,
+		Users:     users,
+		KeepAlive: keepAlive,
 	}
 
 	ctx, cancel := context.WithTimeout(n.baseCtx, 15*time.Second)

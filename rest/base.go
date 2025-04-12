@@ -28,7 +28,7 @@ type Node struct {
 }
 
 func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
-	tlsConfig, err := tools.LoadClientPool(serverCA)
+	certPool, err := tools.LoadClientPool(serverCA)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	n := &Node{
-		client:     tools.CreateHTTPClient(tlsConfig),
+		client:     tools.CreateHTTPClient(certPool, address),
 		baseCtx:    ctx,
 		baseUrl:    "https://" + net.JoinHostPort(address, fmt.Sprintf("%d", port)),
 		cancelFunc: cancel,
@@ -46,7 +46,7 @@ func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra 
 	return n, nil
 }
 
-func (n *Node) Start(config string, backendType common.BackendType, users []*common.User) error {
+func (n *Node) Start(config string, backendType common.BackendType, users []*common.User, keepAlive uint64) error {
 	if n.GetHealth() != controller.NotConnected {
 		n.Stop()
 	}
@@ -55,9 +55,10 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 	defer n.mu.Unlock()
 
 	data := &common.Backend{
-		Type:   backendType,
-		Config: config,
-		Users:  users,
+		Type:      backendType,
+		Config:    config,
+		Users:     users,
+		KeepAlive: keepAlive,
 	}
 
 	n.client.Timeout = time.Second * 15

@@ -147,9 +147,26 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	
+
 	var stats common.OnlineStatResponse
 	err := n.createRequest(n.client, "GET", "stats/user/online", &common.StatRequest{Name: email}, &stats)
+	if err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+func (n *Node) GetUserOnlineIpList(email string) (*common.StatsOnlineIpListResponse, error) {
+	if err := n.Connected(); err != nil {
+		return nil, err
+	}
+
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	var stats common.StatsOnlineIpListResponse
+	err := n.createRequest(n.client, "GET", "stats/user/online_ip", &common.StatRequest{Name: email}, &stats)
 	if err != nil {
 		return nil, err
 	}
