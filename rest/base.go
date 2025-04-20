@@ -138,7 +138,7 @@ func (n *Node) createRequest(client *http.Client, method, endpoint string, data 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+n.GetApiKey())
+	req.Header.Set("x-api-key", n.GetApiKey())
 	if body != nil {
 		req.Header.Set("Content-Type", "application/x-protobuf")
 	}
@@ -161,7 +161,7 @@ func (n *Node) createStreamingRequest(client *http.Client, method, endpoint stri
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+n.GetApiKey())
+	req.Header.Set("x-api-key", n.GetApiKey())
 
 	resp, err := client.Do(req)
 	if err != nil {

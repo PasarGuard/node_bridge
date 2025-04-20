@@ -43,9 +43,7 @@ func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra 
 		return nil, fmt.Errorf("failed to create gRPC client: %v", err)
 	}
 
-	md := metadata.Pairs("authorization", "Bearer "+apiKey.String())
-	ctxWithKey := metadata.NewOutgoingContext(context.Background(), md)
-	ctx, cancel := context.WithCancel(ctxWithKey)
+	ctx, cancel := createCtxWithMD(apiKey.String())
 
 	n := &Node{
 		baseCtx:    ctx,
@@ -99,15 +97,12 @@ func (n *Node) Stop() {
 	n.cancelFunc()
 	n.Disconnect()
 
-	md := metadata.Pairs("authorization", "Bearer "+n.GetApiKey())
-	ctxWithKey := metadata.NewOutgoingContext(context.Background(), md)
+	n.baseCtx, n.cancelFunc = createCtxWithMD(n.GetApiKey())
 
-	ctx, cancel := context.WithTimeout(ctxWithKey, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
 	_, _ = n.client.Stop(ctx, nil)
-
-	n.baseCtx, n.cancelFunc = context.WithCancel(ctxWithKey)
 }
 
 func (n *Node) Info() (*common.BaseInfoResponse, error) {
@@ -148,4 +143,10 @@ loop:
 		}
 		time.Sleep(2 * time.Second)
 	}
+}
+
+func createCtxWithMD(apiKey string) (context.Context, context.CancelFunc) {
+	md := metadata.Pairs("x-api-key", apiKey)
+	ctxWithKey := metadata.NewOutgoingContext(context.Background(), md)
+	return context.WithCancel(ctxWithKey)
 }
