@@ -1,15 +1,11 @@
 package controller
 
 import (
-	"errors"
-	"github.com/google/uuid"
 	"sync"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
-)
+	"github.com/google/uuid"
 
-var (
-	NotConnectedError = errors.New("node is not connected")
+	"github.com/m03ed/gozargah_node_bridge/common"
 )
 
 type Health int
@@ -39,6 +35,10 @@ func (c *Controller) Init(apiKey uuid.UUID, extra map[string]interface{}) {
 	c.health = NotConnected
 	c.extra = extra
 	c.apiKey = apiKey.String()
+
+	c.UserChan = make(chan *common.User)
+	c.NotifyChan = make(chan struct{})
+	c.LogsChan = make(chan string)
 }
 
 func (c *Controller) GetApiKey() string {
@@ -68,33 +68,7 @@ func (c *Controller) GetHealth() Health {
 	return c.health
 }
 
-func (c *Controller) Connected() error {
-	switch c.GetHealth() {
-	case NotConnected:
-		return NotConnectedError
-	default:
-		return nil
-	}
-}
-
 func (c *Controller) UpdateUser(u *common.User) error {
-	if err := c.Connected(); err != nil {
-		return err
-	}
-
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	c.UserChan <- u
-	return nil
-}
-
-func (c *Controller) RemoveUser(u *common.User) error {
-	if err := c.Connected(); err != nil {
-		return err
-	}
-	u.Inbounds = []string{}
-
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -103,10 +77,6 @@ func (c *Controller) RemoveUser(u *common.User) error {
 }
 
 func (c *Controller) GetLogs() (chan string, error) {
-	if err := c.Connected(); err != nil {
-		return nil, err
-	}
-
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.LogsChan, nil
@@ -128,10 +98,6 @@ func (c *Controller) Connect(nodeVersion, coreVersion string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.UserChan = make(chan *common.User)
-	c.NotifyChan = make(chan struct{})
-	c.LogsChan = make(chan string)
-
 	c.nodeVersion = nodeVersion
 	c.coreVersion = coreVersion
 	c.health = Healthy
@@ -145,9 +111,9 @@ func (c *Controller) Disconnect() {
 	close(c.NotifyChan)
 	close(c.LogsChan)
 
-	c.UserChan = nil
-	c.NotifyChan = nil
-	c.LogsChan = nil
+	c.UserChan = make(chan *common.User)
+	c.NotifyChan = make(chan struct{})
+	c.LogsChan = make(chan string)
 
 	c.nodeVersion = ""
 	c.coreVersion = ""

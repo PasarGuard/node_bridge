@@ -20,18 +20,9 @@ type GozargahNode interface {
 	Info() (*common.BaseInfoResponse, error)
 	GetSystemStats() (*common.SystemStatsResponse, error)
 	GetBackendStats() (*common.BackendStatsResponse, error)
-	GetOutboundsStats(bool) (*common.StatResponse, error)
-	GetOutboundStats(string, bool) (*common.StatResponse, error)
-	GetInboundsStats(bool) (*common.StatResponse, error)
-	GetInboundStats(string, bool) (*common.StatResponse, error)
-	GetUsersStats(bool) (*common.StatResponse, error)
-	GetUserStats(string, bool) (*common.StatResponse, error)
-	GetUserOnlineStat(string) (*common.OnlineStatResponse, error)
-	GetUserOnlineIpList(string) (*common.StatsOnlineIpListResponse, error)
+	GetStats(reset bool, name string, statType common.StatType) (*common.StatResponse, error)
 	GetHealth() controller.Health
-	Connected() error
 	UpdateUser(*common.User) error
-	RemoveUser(*common.User) error
 	GetLogs() (chan string, error)
 }
 

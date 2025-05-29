@@ -142,7 +142,7 @@ func TestRestNode(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 
-	stats, err := node.GetOutboundsStats(true)
+	stats, err := node.GetStats(true, "", common.StatType_Outbounds)
 	if err != nil {
 		t.Fatal(err)
 	}

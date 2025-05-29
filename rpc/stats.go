@@ -8,13 +8,6 @@ import (
 )
 
 func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -27,13 +20,6 @@ func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
 }
 
 func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -45,113 +31,11 @@ func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
 	return resp, nil
 }
 
-func (n *Node) GetOutboundsStats(reset bool) (*common.StatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
+func (n *Node) GetStats(reset bool, name string, statType common.StatType) (*common.StatResponse, error) {
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
-	resp, err := n.client.GetOutboundsStats(ctx, &common.StatRequest{Reset_: reset})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (n *Node) GetOutboundStats(tag string, reset bool) (*common.StatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
-	defer cancel()
-
-	resp, err := n.client.GetOutboundStats(ctx, &common.StatRequest{Name: tag, Reset_: reset})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (n *Node) GetInboundsStats(reset bool) (*common.StatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
-	defer cancel()
-
-	resp, err := n.client.GetInboundsStats(ctx, &common.StatRequest{Reset_: reset})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (n *Node) GetInboundStats(tag string, reset bool) (*common.StatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
-	defer cancel()
-
-	resp, err := n.client.GetInboundStats(ctx, &common.StatRequest{Name: tag, Reset_: reset})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (n *Node) GetUsersStats(reset bool) (*common.StatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
-	defer cancel()
-
-	resp, err := n.client.GetUsersStats(ctx, &common.StatRequest{Reset_: reset})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (n *Node) GetUserStats(email string, reset bool) (*common.StatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
-	defer cancel()
-
-	resp, err := n.client.GetUserStats(ctx, &common.StatRequest{Name: email, Reset_: reset})
+	resp, err := n.client.GetStats(ctx, &common.StatRequest{Reset_: reset, Name: name, Type: statType})
 	if err != nil {
 		return nil, err
 	}
@@ -160,13 +44,6 @@ func (n *Node) GetUserStats(email string, reset bool) (*common.StatResponse, err
 }
 
 func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 
@@ -179,13 +56,6 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 }
 
 func (n *Node) GetUserOnlineIpList(email string) (*common.StatsOnlineIpListResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 

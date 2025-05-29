@@ -22,7 +22,7 @@ type Node struct {
 	client     common.NodeServiceClient
 	baseCtx    context.Context
 	cancelFunc context.CancelFunc
-	mu         sync.RWMutex
+	mu         sync.Mutex
 }
 
 func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
@@ -88,7 +88,7 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 }
 
 func (n *Node) Stop() {
-	if n.Connected() != nil {
+	if n.GetHealth() == controller.NotConnected {
 		return
 	}
 	n.mu.Lock()
@@ -106,13 +106,6 @@ func (n *Node) Stop() {
 }
 
 func (n *Node) Info() (*common.BaseInfoResponse, error) {
-	if err := n.Connected(); err != nil {
-		return nil, err
-	}
-
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
 	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
 	defer cancel()
 

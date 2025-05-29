@@ -42,10 +42,6 @@ func (n *Node) SyncUser() {
 }
 
 func (n *Node) SyncUsers(users []*common.User) error {
-	if err := n.Connected(); err != nil {
-		return err
-	}
-
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
