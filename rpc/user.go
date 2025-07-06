@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
@@ -17,7 +16,6 @@ mainLoop:
 			return
 		default:
 		}
-		fmt.Println("health:", n.Health())
 
 		switch n.Health() {
 		case controller.Broken:

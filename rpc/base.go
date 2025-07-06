@@ -121,7 +121,6 @@ func (n *Node) checkNodeHealth(ctx context.Context) {
 loop:
 	for {
 		lastHealth := n.Health()
-		fmt.Println("last health:", lastHealth)
 		select {
 		case <-ctx.Done():
 			break loop
@@ -129,10 +128,8 @@ loop:
 			_, err := n.GetBackendStats()
 			switch {
 			case err != nil && lastHealth != controller.Broken:
-				fmt.Println("become broken", err)
 				n.SetHealth(controller.Broken)
 			case err == nil && lastHealth != controller.Healthy:
-				fmt.Println("become healthy")
 				n.SetHealth(controller.Healthy)
 			}
 		}

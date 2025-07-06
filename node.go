@@ -21,6 +21,8 @@ type GozargahNode interface {
 	GetSystemStats() (*common.SystemStatsResponse, error)
 	GetBackendStats() (*common.BackendStatsResponse, error)
 	GetStats(reset bool, name string, statType common.StatType) (*common.StatResponse, error)
+	GetUserOnlineStat(string) (*common.OnlineStatResponse, error)
+	GetUserOnlineIpList(string) (*common.StatsOnlineIpListResponse, error)
 	Health() controller.Health
 	UpdateUser(*common.User)
 	Logs() (chan string, error)

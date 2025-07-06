@@ -2,6 +2,8 @@ package gozargah_node_bridge
 
 import (
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"os"
 	"testing"
@@ -83,6 +85,13 @@ func TestGrpcNode(t *testing.T) {
 	fmt.Printf("%+v\n", info)
 
 	node.UpdateUser(user)
+
+	_, err = node.GetUserOnlineIpList("does-not-exist@example.com")
+	st, _ := status.FromError(err)
+	fmt.Printf("online ip list status: %+v\n", st)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("Failed to get users stats: %v", err)
+	}
 
 	go func() {
 		for {
