@@ -2,23 +2,23 @@ package rest
 
 import (
 	"bufio"
+	"context"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/m03ed/gozargah_node_bridge/controller"
 )
 
-func (n *Node) FetchLogs() {
-	baseCtx := n.baseCtx
-	client := *n.client
+func (n *Node) FetchLogs(ctx context.Context, client http.Client) {
 	client.Timeout = 0
 mainLoop:
 	for {
 		select {
-		case <-baseCtx.Done():
+		case <-ctx.Done():
 			return
 		default:
-			switch n.GetHealth() {
+			switch n.Health() {
 			case controller.Broken:
 				time.Sleep(5 * time.Second)
 				continue
@@ -29,7 +29,7 @@ mainLoop:
 
 			reader, err := n.createStreamingRequest(&client, "GET", "logs")
 			if err != nil {
-				continue
+				continue mainLoop
 			}
 			defer reader.Close()
 

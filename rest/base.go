@@ -21,13 +21,13 @@ import (
 type Node struct {
 	controller.Controller
 	client     *http.Client
-	baseCtx    context.Context
+	ctx        context.Context
 	baseUrl    string
 	cancelFunc context.CancelFunc
 	mu         sync.Mutex
 }
 
-func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
+func New(address string, port int, serverCA []byte, apiKey uuid.UUID, logChanSize int, extra map[string]interface{}) (*Node, error) {
 	certPool, err := tools.LoadClientPool(serverCA)
 	if err != nil {
 		return nil, err
@@ -36,18 +36,18 @@ func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	n := &Node{
+		Controller: controller.New(apiKey, logChanSize, extra),
 		client:     tools.CreateHTTPClient(certPool, address),
-		baseCtx:    ctx,
+		ctx:        ctx,
 		baseUrl:    "https://" + net.JoinHostPort(address, fmt.Sprintf("%d", port)),
 		cancelFunc: cancel,
 	}
-	n.Init(apiKey, extra)
 
 	return n, nil
 }
 
 func (n *Node) Start(config string, backendType common.BackendType, users []*common.User, keepAlive uint64) error {
-	if n.GetHealth() != controller.NotConnected {
+	if n.Health() != controller.NotConnected {
 		n.Stop()
 	}
 
@@ -70,17 +70,17 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
 	n.client.Timeout = time.Second * 10
 
-	n.baseCtx, n.cancelFunc = context.WithCancel(context.Background())
+	n.ctx, n.cancelFunc = context.WithCancel(context.Background())
 
-	go n.checkNodeHealth()
-	go n.FetchLogs()
-	go n.SyncUser()
+	go n.checkNodeHealth(n.ctx)
+	go n.FetchLogs(n.ctx, *n.client)
+	go n.SyncUser(n.ctx)
 
 	return nil
 }
 
 func (n *Node) Stop() {
-	if n.GetHealth() == controller.NotConnected {
+	if n.Health() == controller.NotConnected {
 		return
 	}
 	n.mu.Lock()
@@ -100,13 +100,12 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 	return &info, nil
 }
 
-func (n *Node) checkNodeHealth() {
-	baseCtx := n.baseCtx
+func (n *Node) checkNodeHealth(ctx context.Context) {
 loop:
 	for {
-		lastHealth := n.GetHealth()
+		lastHealth := n.Health()
 		select {
-		case <-baseCtx.Done():
+		case <-ctx.Done():
 			break loop
 		default:
 			_, err := n.GetBackendStats()
@@ -131,7 +130,7 @@ func (n *Node) createRequest(client *http.Client, method, endpoint string, data 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("x-api-key", n.GetApiKey())
+	req.Header.Set("x-api-key", n.ApiKey())
 	if body != nil {
 		req.Header.Set("Content-Type", "application/x-protobuf")
 	}
@@ -154,7 +153,7 @@ func (n *Node) createStreamingRequest(client *http.Client, method, endpoint stri
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("x-api-key", n.GetApiKey())
+	req.Header.Set("x-api-key", n.ApiKey())
 
 	resp, err := client.Do(req)
 	if err != nil {

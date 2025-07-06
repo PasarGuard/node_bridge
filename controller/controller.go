@@ -28,26 +28,24 @@ type Controller struct {
 	mu          sync.RWMutex
 }
 
-func (c *Controller) Init(apiKey uuid.UUID, extra map[string]interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.health = NotConnected
-	c.extra = extra
-	c.apiKey = apiKey.String()
-
-	c.UserChan = make(chan *common.User)
-	c.NotifyChan = make(chan struct{})
-	c.LogsChan = make(chan string)
+func New(apiKey uuid.UUID, logChanSize int, extra map[string]interface{}) Controller {
+	return Controller{
+		health:     NotConnected,
+		apiKey:     apiKey.String(),
+		extra:      extra,
+		UserChan:   make(chan *common.User),
+		NotifyChan: make(chan struct{}, 10), // some extra space to avoid deadlock
+		LogsChan:   make(chan string, logChanSize),
+	}
 }
 
-func (c *Controller) GetApiKey() string {
+func (c *Controller) ApiKey() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.apiKey
 }
 
-func (c *Controller) GetExtra() map[string]interface{} {
+func (c *Controller) Extra() map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.extra
@@ -62,21 +60,17 @@ func (c *Controller) SetHealth(health Health) {
 	c.health = health
 }
 
-func (c *Controller) GetHealth() Health {
+func (c *Controller) Health() Health {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.health
 }
 
-func (c *Controller) UpdateUser(u *common.User) error {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
+func (c *Controller) UpdateUser(u *common.User) {
 	c.UserChan <- u
-	return nil
 }
 
-func (c *Controller) GetLogs() (chan string, error) {
+func (c *Controller) Logs() (chan string, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.LogsChan, nil

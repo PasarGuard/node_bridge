@@ -2,17 +2,14 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
 	"github.com/m03ed/gozargah_node_bridge/controller"
 )
 
-func (n *Node) SyncUser() {
-	baseCtx := n.baseCtx
-	notifyChan := n.NotifyChan
-	userChan := n.UserChan
-
+func (n *Node) SyncUser(baseCtx context.Context) {
 mainLoop:
 	for {
 		select {
@@ -20,8 +17,9 @@ mainLoop:
 			return
 		default:
 		}
+		fmt.Println("health:", n.Health())
 
-		switch n.GetHealth() {
+		switch n.Health() {
 		case controller.Broken:
 			time.Sleep(5 * time.Second)
 			continue mainLoop
@@ -30,7 +28,7 @@ mainLoop:
 		default:
 		}
 
-		syncUser, _ := n.client.SyncUser(n.baseCtx)
+		syncUser, _ := n.client.SyncUser(n.ctx)
 	inLoop:
 		for {
 			select {
@@ -38,12 +36,12 @@ mainLoop:
 				return
 			case <-syncUser.Context().Done():
 				return
-			case _, ok := <-notifyChan:
+			case _, ok := <-n.NotifyChan:
 				if !ok {
 					return
 				}
 				continue mainLoop
-			case u, ok := <-userChan:
+			case u, ok := <-n.UserChan:
 				if !ok {
 					return
 				}
@@ -60,7 +58,7 @@ func (n *Node) SyncUsers(users []*common.User) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(n.baseCtx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 10*time.Second)
 	defer cancel()
 
 	if _, err := n.client.SyncUsers(ctx, &common.Users{Users: users}); err != nil {

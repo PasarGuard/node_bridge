@@ -21,9 +21,9 @@ type GozargahNode interface {
 	GetSystemStats() (*common.SystemStatsResponse, error)
 	GetBackendStats() (*common.BackendStatsResponse, error)
 	GetStats(reset bool, name string, statType common.StatType) (*common.StatResponse, error)
-	GetHealth() controller.Health
-	UpdateUser(*common.User) error
-	GetLogs() (chan string, error)
+	Health() controller.Health
+	UpdateUser(*common.User)
+	Logs() (chan string, error)
 }
 
 type NodeProtocol string
@@ -33,21 +33,93 @@ const (
 	REST NodeProtocol = "REST"
 )
 
-func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}, nodeProtocol NodeProtocol) (GozargahNode, error) {
+// NodeOptions holds the configuration for creating a new node
+type NodeOptions struct {
+	address      string
+	port         int
+	serverCA     []byte
+	apiKey       uuid.UUID
+	extra        map[string]interface{}
+	nodeProtocol NodeProtocol
+	logChanSize  int
+}
+
+// NodeOption is a function type for configuring NodeOptions
+type NodeOption func(*NodeOptions) error
+
+// WithPort sets the port for the node
+func WithPort(port int) NodeOption {
+	return func(opts *NodeOptions) error {
+		if port <= 0 {
+			return errors.New("port must be greater than 0")
+		}
+		opts.port = port
+		return nil
+	}
+}
+
+// WithServerCA sets the server CA certificate
+func WithServerCA(serverCA []byte) NodeOption {
+	return func(opts *NodeOptions) error {
+		opts.serverCA = serverCA
+		return nil
+	}
+}
+
+// WithAPIKey sets the API key
+func WithAPIKey(apiKey uuid.UUID) NodeOption {
+	return func(opts *NodeOptions) error {
+		opts.apiKey = apiKey
+		return nil
+	}
+}
+
+// WithExtra sets extra configuration parameters
+func WithExtra(extra map[string]interface{}) NodeOption {
+	return func(opts *NodeOptions) error {
+		opts.extra = extra
+		return nil
+	}
+}
+
+func WithLogChannelSize(size int) NodeOption {
+	return func(opts *NodeOptions) error {
+		if size <= 0 {
+			opts.logChanSize = 1000
+		} else {
+			opts.logChanSize = size
+		}
+		return nil
+	}
+}
+
+// New creates a new node with the given address, protocol, and options
+func New(address string, nodeProtocol NodeProtocol, options ...NodeOption) (GozargahNode, error) {
 	if address == "" {
 		return nil, errors.New("address is empty")
 	}
-	if port == 0 {
-		return nil, errors.New("port is empty")
+
+	// Initialize options with defaults
+	opts := &NodeOptions{
+		address:      address,
+		nodeProtocol: nodeProtocol,
+		extra:        make(map[string]interface{}),
+	}
+
+	// Apply all provided options
+	for _, option := range options {
+		if err := option(opts); err != nil {
+			return nil, err
+		}
 	}
 
 	var node GozargahNode
 	var err error
 	switch nodeProtocol {
 	case GRPC:
-		node, err = rpc.NewNode(address, port, serverCA, apiKey, extra)
+		node, err = rpc.New(opts.address, opts.port, opts.serverCA, opts.apiKey, opts.logChanSize, opts.extra)
 	case REST:
-		node, err = rest.NewNode(address, port, serverCA, apiKey, extra)
+		node, err = rest.New(opts.address, opts.port, opts.serverCA, opts.apiKey, opts.logChanSize, opts.extra)
 	default:
 		return nil, errors.New("unknown node protocol")
 	}

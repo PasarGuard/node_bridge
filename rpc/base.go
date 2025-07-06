@@ -20,12 +20,12 @@ import (
 type Node struct {
 	controller.Controller
 	client     common.NodeServiceClient
-	baseCtx    context.Context
+	ctx        context.Context
 	cancelFunc context.CancelFunc
 	mu         sync.Mutex
 }
 
-func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra map[string]interface{}) (*Node, error) {
+func New(address string, port int, serverCA []byte, apiKey uuid.UUID, logChanSize int, extra map[string]interface{}) (*Node, error) {
 	certPool, err := tools.LoadClientPool(serverCA)
 	if err != nil {
 		return nil, err
@@ -46,17 +46,17 @@ func NewNode(address string, port int, serverCA []byte, apiKey uuid.UUID, extra 
 	ctx, cancel := createCtxWithMD(apiKey.String())
 
 	n := &Node{
-		baseCtx:    ctx,
+		Controller: controller.New(apiKey, logChanSize, extra),
+		ctx:        ctx,
 		client:     common.NewNodeServiceClient(client),
 		cancelFunc: cancel,
 	}
-	n.Init(apiKey, extra)
 
 	return n, nil
 }
 
 func (n *Node) Start(config string, backendType common.BackendType, users []*common.User, keepAlive uint64) error {
-	if n.GetHealth() != controller.NotConnected {
+	if n.Health() != controller.NotConnected {
 		n.Stop()
 	}
 
@@ -70,7 +70,7 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 		KeepAlive: keepAlive,
 	}
 
-	ctx, cancel := context.WithTimeout(n.baseCtx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 15*time.Second)
 	defer cancel()
 
 	info, err := n.client.Start(ctx, req)
@@ -80,15 +80,15 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
 
-	go n.checkNodeHealth()
-	go n.SyncUser()
-	go n.FetchLogs()
+	go n.checkNodeHealth(n.ctx)
+	go n.SyncUser(n.ctx)
+	go n.FetchLogs(n.ctx)
 
 	return nil
 }
 
 func (n *Node) Stop() {
-	if n.GetHealth() == controller.NotConnected {
+	if n.Health() == controller.NotConnected {
 		return
 	}
 	n.mu.Lock()
@@ -97,16 +97,16 @@ func (n *Node) Stop() {
 	n.cancelFunc()
 	n.Disconnect()
 
-	n.baseCtx, n.cancelFunc = createCtxWithMD(n.GetApiKey())
+	n.ctx, n.cancelFunc = createCtxWithMD(n.ApiKey())
 
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	_, _ = n.client.Stop(ctx, nil)
 }
 
 func (n *Node) Info() (*common.BaseInfoResponse, error) {
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	resp, err := n.client.GetBaseInfo(ctx, nil)
@@ -117,20 +117,22 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 	return resp, nil
 }
 
-func (n *Node) checkNodeHealth() {
-	baseCtx := n.baseCtx
+func (n *Node) checkNodeHealth(ctx context.Context) {
 loop:
 	for {
-		lastHealth := n.GetHealth()
+		lastHealth := n.Health()
+		fmt.Println("last health:", lastHealth)
 		select {
-		case <-baseCtx.Done():
+		case <-ctx.Done():
 			break loop
 		default:
 			_, err := n.GetBackendStats()
 			switch {
 			case err != nil && lastHealth != controller.Broken:
+				fmt.Println("become broken", err)
 				n.SetHealth(controller.Broken)
 			case err == nil && lastHealth != controller.Healthy:
+				fmt.Println("become healthy")
 				n.SetHealth(controller.Healthy)
 			}
 		}

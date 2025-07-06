@@ -1,16 +1,16 @@
 package rest
 
 import (
+	"context"
 	"time"
 
 	"github.com/m03ed/gozargah_node_bridge/common"
 	"github.com/m03ed/gozargah_node_bridge/controller"
 )
 
-func (n *Node) SyncUser() {
-	baseCtx := n.baseCtx
+func (n *Node) SyncUser(ctx context.Context) {
 	for {
-		switch n.GetHealth() {
+		switch n.Health() {
 		case controller.Broken:
 			time.Sleep(5 * time.Second)
 			continue
@@ -20,7 +20,7 @@ func (n *Node) SyncUser() {
 		}
 
 		select {
-		case <-baseCtx.Done():
+		case <-ctx.Done():
 			return
 
 		case _, ok := <-n.NotifyChan:

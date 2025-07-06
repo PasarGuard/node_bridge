@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	port       = 2096
 	nodeAddr   = "172.27.158.135"
 	serverCA   = "certs/ssl_cert.pem"
 	apiKey     = "d04d8680-942d-4365-992f-9f482275691d"
@@ -26,6 +25,7 @@ var (
 	serverCAFile []byte
 	uuidKey      uuid.UUID
 	configFile   string
+	opts         []NodeOption
 )
 
 func init() {
@@ -44,10 +44,28 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	opts = []NodeOption{
+		WithPort(2096),
+		WithAPIKey(uuidKey),
+		WithServerCA(serverCAFile),
+		WithLogChannelSize(100),
+	}
 }
 
+var user = common.CreateUser(
+	"test_user",
+	common.CreateProxies(
+		common.CreateVmess(uuid.New().String()),
+		common.CreateVless(uuid.New().String(), ""),
+		common.CreateTrojan("random data"),
+		common.CreateShadowsocks("random", "aes-256-gcm"),
+	),
+	[]string{},
+)
+
 func TestGrpcNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, serverCAFile, uuidKey, nil, GRPC)
+	node, err := New(nodeAddr, GRPC, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,22 +82,11 @@ func TestGrpcNode(t *testing.T) {
 	}
 	fmt.Printf("%+v\n", info)
 
-	user := common.CreateUser(
-		"test_user",
-		common.CreateProxies(
-			common.CreateVmess(uuid.New().String()), common.CreateVless(uuid.New().String(), ""),
-			common.CreateTrojan("random data"), common.CreateShadowsocks("random", "aes-256-gcm"),
-		),
-		[]string{},
-	)
-
-	if err = node.UpdateUser(user); err != nil {
-		t.Fatal(err)
-	}
+	node.UpdateUser(user)
 
 	go func() {
 		for {
-			logChan, err := node.GetLogs()
+			logChan, err := node.Logs()
 			if err != nil {
 				t.Error(err)
 			}
@@ -92,11 +99,10 @@ func TestGrpcNode(t *testing.T) {
 	}()
 
 	time.Sleep(2 * time.Second)
-
 }
 
 func TestRestNode(t *testing.T) {
-	node, err := NewNode(nodeAddr, port, serverCAFile, uuidKey, nil, REST)
+	node, err := New(nodeAddr, REST, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,22 +119,11 @@ func TestRestNode(t *testing.T) {
 	}
 	fmt.Printf("%+v\n", info)
 
-	user := common.CreateUser(
-		"test_user",
-		common.CreateProxies(
-			common.CreateVmess(uuid.New().String()), common.CreateVless(uuid.New().String(), ""),
-			common.CreateTrojan("random data"), common.CreateShadowsocks("random", "aes-256-gcm"),
-		),
-		[]string{},
-	)
-
-	if err = node.UpdateUser(user); err != nil {
-		t.Fatal(err)
-	}
+	node.UpdateUser(user)
 
 	go func() {
 		for {
-			logChan, err := node.GetLogs()
+			logChan, err := node.Logs()
 			if err != nil {
 				t.Error(err)
 			}

@@ -8,7 +8,7 @@ import (
 )
 
 func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	resp, err := n.client.GetSystemStats(ctx, nil)
@@ -20,7 +20,7 @@ func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
 }
 
 func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	resp, err := n.client.GetBackendStats(ctx, nil)
@@ -32,7 +32,7 @@ func (n *Node) GetBackendStats() (*common.BackendStatsResponse, error) {
 }
 
 func (n *Node) GetStats(reset bool, name string, statType common.StatType) (*common.StatResponse, error) {
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	resp, err := n.client.GetStats(ctx, &common.StatRequest{Reset_: reset, Name: name, Type: statType})
@@ -44,7 +44,7 @@ func (n *Node) GetStats(reset bool, name string, statType common.StatType) (*com
 }
 
 func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, error) {
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	resp, err := n.client.GetUserOnlineStats(ctx, &common.StatRequest{Name: email})
@@ -56,7 +56,7 @@ func (n *Node) GetUserOnlineStat(email string) (*common.OnlineStatResponse, erro
 }
 
 func (n *Node) GetUserOnlineIpList(email string) (*common.StatsOnlineIpListResponse, error) {
-	ctx, cancel := context.WithTimeout(n.baseCtx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
 	defer cancel()
 
 	resp, err := n.client.GetUserOnlineIpListStats(ctx, &common.StatRequest{Name: email})
