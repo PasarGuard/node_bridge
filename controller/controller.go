@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
+	"github.com/pasarguard/node_bridge/common"
 )
 
 type Health int

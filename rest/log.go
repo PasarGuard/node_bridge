@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m03ed/gozargah_node_bridge/controller"
+	"github.com/pasarguard/node_bridge/controller"
 )
 
 func (n *Node) FetchLogs(ctx context.Context, client http.Client) {

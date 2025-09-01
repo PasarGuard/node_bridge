@@ -2,17 +2,18 @@ package gozargah_node_bridge
 
 import (
 	"fmt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
 	"log"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
-	"github.com/m03ed/gozargah_node_bridge/tools"
+	"github.com/pasarguard/node_bridge/common"
+	"github.com/pasarguard/node_bridge/tools"
 )
 
 var (

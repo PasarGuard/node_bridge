@@ -5,13 +5,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
-	"github.com/m03ed/gozargah_node_bridge/controller"
-	"github.com/m03ed/gozargah_node_bridge/rest"
-	"github.com/m03ed/gozargah_node_bridge/rpc"
+	"github.com/pasarguard/node_bridge/common"
+	"github.com/pasarguard/node_bridge/controller"
+	"github.com/pasarguard/node_bridge/rest"
+	"github.com/pasarguard/node_bridge/rpc"
 )
 
-type GozargahNode interface {
+type PasarGuardNode interface {
 	Start(string, common.BackendType, []*common.User, uint64) error
 	Stop()
 	NodeVersion() string
@@ -96,7 +96,7 @@ func WithLogChannelSize(size int) NodeOption {
 }
 
 // New creates a new node with the given address, protocol, and options
-func New(address string, nodeProtocol NodeProtocol, options ...NodeOption) (GozargahNode, error) {
+func New(address string, nodeProtocol NodeProtocol, options ...NodeOption) (PasarGuardNode, error) {
 	if address == "" {
 		return nil, errors.New("address is empty")
 	}
@@ -115,7 +115,7 @@ func New(address string, nodeProtocol NodeProtocol, options ...NodeOption) (Goza
 		}
 	}
 
-	var node GozargahNode
+	var node PasarGuardNode
 	var err error
 	switch nodeProtocol {
 	case GRPC:

@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
-	"github.com/m03ed/gozargah_node_bridge/controller"
-	"github.com/m03ed/gozargah_node_bridge/tools"
+	"github.com/pasarguard/node_bridge/common"
+	"github.com/pasarguard/node_bridge/controller"
+	"github.com/pasarguard/node_bridge/tools"
 )
 
 type Node struct {

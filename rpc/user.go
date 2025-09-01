@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/m03ed/gozargah_node_bridge/common"
-	"github.com/m03ed/gozargah_node_bridge/controller"
+	"github.com/pasarguard/node_bridge/common"
+	"github.com/pasarguard/node_bridge/controller"
 )
 
 func (n *Node) SyncUser(baseCtx context.Context) {

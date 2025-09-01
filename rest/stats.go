@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/m03ed/gozargah_node_bridge/common"
+	"github.com/pasarguard/node_bridge/common"
 )
 
 func (n *Node) GetSystemStats() (*common.SystemStatsResponse, error) {
