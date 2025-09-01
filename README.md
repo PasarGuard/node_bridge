@@ -1,8 +1,8 @@
-# Gozargah Node Bridge
+# PasarGuard Node Bridge
 
-A Go library for To connect easy and stable to [Gozargah-Node](https://github.com/M03ED/gozargah-node).
+A Go library for To connect easy and stable to [PasarGuard-Node](https://github.com/PasarGuard/node).
 
 ## Installation
 ```bash
-go get github.com/m03ed/gozargah_node_bridge
+go get github.com/pasarguard/node_bridge
 ```
