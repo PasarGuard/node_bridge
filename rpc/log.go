@@ -2,44 +2,66 @@ package rpc
 
 import (
 	"context"
-	"time"
+	"errors"
 
 	"github.com/pasarguard/node_bridge/common"
 	"github.com/pasarguard/node_bridge/controller"
 )
 
-func (n *Node) FetchLogs(ctx context.Context) {
+func (n *Node) StreamLogs(ctx context.Context) (<-chan controller.LogEntry, error) {
+	if n.Health() == controller.NotConnected {
+		return nil, errors.New("node not connected")
+	}
 
-mainLoop:
-	for {
-		select {
-		case <-ctx.Done():
+	logChan := make(chan controller.LogEntry, n.LogChanSize())
+
+	go func() {
+		defer close(logChan)
+
+		logsStream, err := n.client.GetLogs(n.ctx, &common.Empty{})
+		if err != nil {
+			pushLogEntry(logChan, controller.LogEntry{Err: err})
 			return
-		default:
-			switch n.Health() {
-			case controller.Broken:
-				time.Sleep(5 * time.Second)
-				continue
-			case controller.NotConnected:
+		}
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-n.ctx.Done():
 				return
 			default:
-			}
-
-			logsStream, _ := n.client.GetLogs(n.ctx, &common.Empty{})
-			for {
-				select {
-				case <-ctx.Done():
+				logEntry, err := logsStream.Recv()
+				if err != nil {
+					// Only push error if it's not a normal cancellation
+					if ctx.Err() == nil && n.ctx.Err() == nil {
+						pushLogEntry(logChan, controller.LogEntry{Err: err})
+					}
 					return
-				default:
-					logEntry, err := logsStream.Recv()
-					if err != nil {
-						continue mainLoop
-					}
-					if logEntry != nil {
-						n.LogsChan <- logEntry.GetDetail()
-					}
+				}
+				if logEntry != nil {
+					pushLogEntry(logChan, controller.LogEntry{Line: logEntry.GetDetail()})
 				}
 			}
+		}
+	}()
+
+	return logChan, nil
+}
+
+func pushLogEntry(ch chan controller.LogEntry, entry controller.LogEntry) {
+	select {
+	case ch <- entry:
+	default:
+		// Drop oldest
+		select {
+		case <-ch:
+		default:
+		}
+		// Non-blocking write to avoid deadlock if channel was emptied between selects
+		select {
+		case ch <- entry:
+		default:
 		}
 	}
 }

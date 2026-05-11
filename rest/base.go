@@ -72,9 +72,7 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 
 	n.ctx, n.cancelFunc = context.WithCancel(context.Background())
 
-	go n.checkNodeHealth(n.ctx)
-	go n.FetchLogs(n.ctx, *n.client)
-	go n.SyncUser(n.ctx)
+	n.StartSync(n.ctx, n.SyncUsers)
 
 	return nil
 }
@@ -98,26 +96,6 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 	}
 
 	return &info, nil
-}
-
-func (n *Node) checkNodeHealth(ctx context.Context) {
-loop:
-	for {
-		lastHealth := n.Health()
-		select {
-		case <-ctx.Done():
-			break loop
-		default:
-			_, err := n.GetBackendStats()
-			switch {
-			case err != nil && lastHealth != controller.Broken:
-				n.SetHealth(controller.Broken)
-			case err == nil && lastHealth != controller.Healthy:
-				n.SetHealth(controller.Healthy)
-			}
-		}
-		time.Sleep(2 * time.Second)
-	}
 }
 
 func (n *Node) createRequest(client *http.Client, method, endpoint string, data proto.Message, response proto.Message) error {

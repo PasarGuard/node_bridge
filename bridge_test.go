@@ -1,6 +1,7 @@
 package gozargah_node_bridge
 
 import (
+	"context"
 	"fmt"
 
 	"log"
@@ -63,6 +64,8 @@ var user = common.CreateUser(
 		common.CreateVless(uuid.New().String(), ""),
 		common.CreateTrojan("random data"),
 		common.CreateShadowsocks("random", "aes-256-gcm"),
+		nil,
+		nil,
 	),
 	[]string{},
 )
@@ -85,7 +88,7 @@ func TestGrpcNode(t *testing.T) {
 	}
 	fmt.Printf("%+v\n", info)
 
-	node.UpdateUser(user)
+	node.UpdateUsers([]*common.User{user})
 
 	_, err = node.GetUserOnlineIpList("does-not-exist@example.com")
 	st, _ := status.FromError(err)
@@ -95,16 +98,16 @@ func TestGrpcNode(t *testing.T) {
 	}
 
 	go func() {
-		for {
-			logChan, err := node.Logs()
-			if err != nil {
-				t.Error(err)
-			}
-			newLog, ok := <-logChan
-			if !ok {
+		logChan, err := node.StreamLogs(context.Background())
+		if err != nil {
+			t.Error(err)
+		}
+		for entry := range logChan {
+			if entry.Err != nil {
+				t.Log(entry.Err)
 				return
 			}
-			fmt.Println(newLog)
+			fmt.Println(entry.Line)
 		}
 	}()
 
@@ -129,19 +132,19 @@ func TestRestNode(t *testing.T) {
 	}
 	fmt.Printf("%+v\n", info)
 
-	node.UpdateUser(user)
+	node.UpdateUsers([]*common.User{user})
 
 	go func() {
-		for {
-			logChan, err := node.Logs()
-			if err != nil {
-				t.Error(err)
-			}
-			newLog, ok := <-logChan
-			if !ok {
+		logChan, err := node.StreamLogs(context.Background())
+		if err != nil {
+			t.Error(err)
+		}
+		for entry := range logChan {
+			if entry.Err != nil {
+				t.Log(entry.Err)
 				return
 			}
-			fmt.Println(newLog)
+			fmt.Println(entry.Line)
 		}
 	}()
 

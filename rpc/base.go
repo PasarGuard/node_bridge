@@ -80,9 +80,7 @@ func (n *Node) Start(config string, backendType common.BackendType, users []*com
 
 	n.Connect(info.GetNodeVersion(), info.GetCoreVersion())
 
-	go n.checkNodeHealth(n.ctx)
-	go n.SyncUser(n.ctx)
-	go n.FetchLogs(n.ctx)
+	n.StartSync(n.ctx, n.SyncUsers)
 
 	return nil
 }
@@ -115,26 +113,6 @@ func (n *Node) Info() (*common.BaseInfoResponse, error) {
 	}
 
 	return resp, nil
-}
-
-func (n *Node) checkNodeHealth(ctx context.Context) {
-loop:
-	for {
-		lastHealth := n.Health()
-		select {
-		case <-ctx.Done():
-			break loop
-		default:
-			_, err := n.GetBackendStats()
-			switch {
-			case err != nil && lastHealth != controller.Broken:
-				n.SetHealth(controller.Broken)
-			case err == nil && lastHealth != controller.Healthy:
-				n.SetHealth(controller.Healthy)
-			}
-		}
-		time.Sleep(2 * time.Second)
-	}
 }
 
 func createCtxWithMD(apiKey string) (context.Context, context.CancelFunc) {

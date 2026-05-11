@@ -8,59 +8,46 @@ import (
 	"github.com/pasarguard/node_bridge/controller"
 )
 
-func (n *Node) SyncUser(baseCtx context.Context) {
-mainLoop:
-	for {
-		select {
-		case <-baseCtx.Done():
-			return
-		default:
-		}
-
-		switch n.Health() {
-		case controller.Broken:
-			time.Sleep(5 * time.Second)
-			continue mainLoop
-		case controller.NotConnected:
-			return
-		default:
-		}
-
-		syncUser, _ := n.client.SyncUser(n.ctx)
-	inLoop:
-		for {
-			select {
-			case <-baseCtx.Done():
-				return
-			case <-syncUser.Context().Done():
-				return
-			case _, ok := <-n.NotifyChan:
-				if !ok {
-					return
-				}
-				continue mainLoop
-			case u, ok := <-n.UserChan:
-				if !ok {
-					return
-				}
-
-				if err := syncUser.Send(u); err != nil {
-					break inLoop
-				}
-			}
-		}
-	}
-}
-
 func (n *Node) SyncUsers(users []*common.User) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(n.ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(n.ctx, 30*time.Second)
 	defer cancel()
 
-	if _, err := n.client.SyncUsers(ctx, &common.Users{Users: users}); err != nil {
+	stream, err := n.client.SyncUsersChunked(ctx)
+	if err != nil {
 		return err
 	}
-	return nil
+
+	for i := 0; i < len(users); i += controller.MaxChunkSize {
+		end := i + controller.MaxChunkSize
+		if end > len(users) {
+			end = len(users)
+		}
+		chunk := users[i:end]
+
+		err := stream.Send(&common.UsersChunk{
+			Users: chunk,
+			Index: uint64(i / controller.MaxChunkSize),
+			Last:  end == len(users),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(users) == 0 {
+		err := stream.Send(&common.UsersChunk{
+			Users: nil,
+			Index: 0,
+			Last:  true,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = stream.CloseAndRecv()
+	return err
 }

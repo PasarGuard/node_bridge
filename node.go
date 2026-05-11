@@ -1,6 +1,7 @@
 package gozargah_node_bridge
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -24,8 +25,9 @@ type PasarGuardNode interface {
 	GetUserOnlineStat(string) (*common.OnlineStatResponse, error)
 	GetUserOnlineIpList(string) (*common.StatsOnlineIpListResponse, error)
 	Health() controller.Health
-	UpdateUser(*common.User)
-	Logs() (chan string, error)
+	UpdateUsers([]*common.User)
+	StreamLogs(context.Context) (<-chan controller.LogEntry, error)
+	HardReset() <-chan struct{}
 }
 
 type NodeProtocol string

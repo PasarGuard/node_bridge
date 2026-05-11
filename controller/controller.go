@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"sync"
 
 	"github.com/google/uuid"
@@ -16,27 +17,37 @@ const (
 	Healthy
 )
 
+type LogEntry struct {
+	Line string
+	Err  error
+}
+
 type Controller struct {
-	health      Health
-	UserChan    chan *common.User
-	NotifyChan  chan struct{}
-	LogsChan    chan string
-	nodeVersion string
-	coreVersion string
-	apiKey      string
-	extra       map[string]interface{}
-	mu          sync.RWMutex
+	health        Health
+	nodeVersion   string
+	coreVersion   string
+	apiKey        string
+	extra         map[string]interface{}
+	logChanSize   int
+	mu            sync.RWMutex
+	SyncManager   *SyncManager
+	HardResetChan chan struct{}
 }
 
 func New(apiKey uuid.UUID, logChanSize int, extra map[string]interface{}) Controller {
 	return Controller{
-		health:     NotConnected,
-		apiKey:     apiKey.String(),
-		extra:      extra,
-		UserChan:   make(chan *common.User),
-		NotifyChan: make(chan struct{}, 10), // some extra space to avoid deadlock
-		LogsChan:   make(chan string, logChanSize),
+		health:        NotConnected,
+		apiKey:        apiKey.String(),
+		extra:         extra,
+		logChanSize:   logChanSize,
+		HardResetChan: make(chan struct{}, 1),
 	}
+}
+
+func (c *Controller) LogChanSize() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.logChanSize
 }
 
 func (c *Controller) ApiKey() string {
@@ -54,9 +65,6 @@ func (c *Controller) Extra() map[string]interface{} {
 func (c *Controller) SetHealth(health Health) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if health == Broken && c.health != Broken {
-		c.NotifyChan <- struct{}{}
-	}
 	c.health = health
 }
 
@@ -66,14 +74,30 @@ func (c *Controller) Health() Health {
 	return c.health
 }
 
-func (c *Controller) UpdateUser(u *common.User) {
-	c.UserChan <- u
+func (c *Controller) UpdateUsers(users []*common.User) {
+	c.mu.RLock()
+	sm := c.SyncManager
+	c.mu.RUnlock()
+	if sm != nil {
+		sm.UpdateUsers(users)
+	}
 }
 
-func (c *Controller) Logs() (chan string, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.LogsChan, nil
+func (c *Controller) HardReset() <-chan struct{} {
+	return c.HardResetChan
+}
+
+func (c *Controller) triggerHardReset() {
+	select {
+	case c.HardResetChan <- struct{}{}:
+	default:
+	}
+}
+
+func (c *Controller) StartSync(ctx context.Context, syncer func([]*common.User) error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.SyncManager = NewSyncManager(ctx, syncer, c.triggerHardReset)
 }
 
 func (c *Controller) NodeVersion() string {
@@ -101,13 +125,10 @@ func (c *Controller) Disconnect() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	close(c.UserChan)
-	close(c.NotifyChan)
-	close(c.LogsChan)
+	close(c.HardResetChan)
 
-	c.UserChan = make(chan *common.User)
-	c.NotifyChan = make(chan struct{})
-	c.LogsChan = make(chan string)
+	c.HardResetChan = make(chan struct{}, 1)
+	c.SyncManager = nil
 
 	c.nodeVersion = ""
 	c.coreVersion = ""
