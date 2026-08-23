@@ -24,8 +24,12 @@ func CreateHysteria(auth string) *Hysteria {
 	return &Hysteria{Auth: auth}
 }
 
-func CreateProxies(vmess *Vmess, vless *Vless, trojan *Trojan, shadowsocks *Shadowsocks, wireguard *Wireguard, hysteria *Hysteria) *Proxy {
-	return &Proxy{Vmess: vmess, Vless: vless, Trojan: trojan, Shadowsocks: shadowsocks, Wireguard: wireguard, Hysteria: hysteria}
+func CreateMtproto(secret, userAdTag string, maxTcpConns, maxUniqueIps uint32) *Mtproto {
+	return &Mtproto{Secret: secret, UserAdTag: userAdTag, MaxTcpConns: maxTcpConns, MaxUniqueIps: maxUniqueIps}
+}
+
+func CreateProxies(vmess *Vmess, vless *Vless, trojan *Trojan, shadowsocks *Shadowsocks, wireguard *Wireguard, hysteria *Hysteria, mtproto *Mtproto) *Proxy {
+	return &Proxy{Vmess: vmess, Vless: vless, Trojan: trojan, Shadowsocks: shadowsocks, Wireguard: wireguard, Hysteria: hysteria, Mtproto: mtproto}
 }
 
 func CreateUser(email string, proxies *Proxy, inbounds []string) *User {
