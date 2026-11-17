@@ -66,6 +66,7 @@ var user = common.CreateUser(
 		common.CreateShadowsocks("random", "aes-256-gcm"),
 		nil,
 		nil,
+		nil,
 	),
 	[]string{},
 )
